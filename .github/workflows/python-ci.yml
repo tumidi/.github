@@ -6,24 +6,28 @@ on:
       packages:
         type: string
         required: true
-        description: Space-seperated list of source packages, not including tests
+        description: Space-seperated list of source packages, not including tests, which are always assumed to be in
+          'tests'.
 
 jobs:
   pytest:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-
+      - name: Install poetry
+        run: |
+          pipx install "poetry>=1.1.14,<2.0.0"
+          poetry config -n virtualenvs.in-project true
       - uses: actions/setup-python@v4
         with:
           python-version-file: '.python-version'
-          cache: pip
-          cache-dependency-path: |
-            requirements.txt
-            requirements-dev.txt
-
+          cache: poetry
       - name: Install dependencies
-        run: pip install -r requirements.txt -r requirements-dev.txt
+        run: poetry install -n
+      - name: Activate virtualenv
+        run: |
+          echo "VIRTUAL_ENV=$PWD/.venv" >> $GITHUB_ENV
+          echo "$PWD/.venv/bin" >> $GITHUB_PATH
 
       - name: Run pytest
         # For some reason, pytest on GitHub actions defaults to /home/runner/work instead of the working directory
@@ -65,17 +69,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-
+      - name: Install poetry
+        run: |
+          pipx install "poetry>=1.1.14,<2.0.0"
+          poetry config -n virtualenvs.in-project true
       - uses: actions/setup-python@v4
         with:
           python-version-file: '.python-version'
-          cache: pip
-          cache-dependency-path: |
-            requirements.txt
-            requirements-dev.txt
-
+          cache: poetry
       - name: Install dependencies
-        run: pip install -r requirements.txt -r requirements-dev.txt
+        run: poetry install -n
+      - name: Activate virtualenv
+        run: |
+          echo "VIRTUAL_ENV=$PWD/.venv" >> $GITHUB_ENV
+          echo "$PWD/.venv/bin" >> $GITHUB_PATH
 
       - name: Run pylint
         run: pylint ${{ inputs.packages }} tests
@@ -84,17 +91,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-
+      - name: Install poetry
+        run: |
+          pipx install "poetry>=1.1.14,<2.0.0"
+          poetry config -n virtualenvs.in-project true
       - uses: actions/setup-python@v4
         with:
           python-version-file: '.python-version'
-          cache: pip
-          cache-dependency-path: |
-            requirements.txt
-            requirements-dev.txt
-
+          cache: poetry
       - name: Install dependencies
-        run: pip install -r requirements.txt -r requirements-dev.txt
+        run: poetry install -n
+      - name: Activate virtualenv
+        run: |
+          echo "VIRTUAL_ENV=$PWD/.venv" >> $GITHUB_ENV
+          echo "$PWD/.venv/bin" >> $GITHUB_PATH
 
       - name: Run mypy
         run: mypy ${{ inputs.packages }} tests
@@ -103,17 +113,48 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-
+      - name: Install poetry
+        run: |
+          pipx install "poetry>=1.1.14,<2.0.0"
+          poetry config -n virtualenvs.in-project true
       - uses: actions/setup-python@v4
         with:
           python-version-file: '.python-version'
-          cache: pip
-          cache-dependency-path: |
-            requirements.txt
-            requirements-dev.txt
-
+          cache: poetry
       - name: Install dependencies
-        run: pip install -r requirements.txt -r requirements-dev.txt
+        run: poetry install -n
+      - name: Activate virtualenv
+        run: |
+          echo "VIRTUAL_ENV=$PWD/.venv" >> $GITHUB_ENV
+          echo "$PWD/.venv/bin" >> $GITHUB_PATH
 
       - name: Run flake8
         run: flake8 ${{ inputs.packages }} tests
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install poetry
+        run: |
+          pipx install "poetry>=1.1.14,<2.0.0"
+          poetry config -n virtualenvs.in-project true
+      - uses: actions/setup-python@v4
+        with:
+          python-version-file: '.python-version'
+          cache: poetry
+      - name: Install dependencies
+        run: poetry install -n
+      - name: Activate virtualenv
+        run: |
+          echo "VIRTUAL_ENV=$PWD/.venv" >> $GITHUB_ENV
+          echo "$PWD/.venv/bin" >> $GITHUB_PATH
+
+      - name: Build
+        run: poetry build -n
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: artifacts
+          path: dist
