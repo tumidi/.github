@@ -31,7 +31,7 @@ jobs:
           cache: poetry
 
       - name: Install dependencies
-        run: poetry install -n
+        run: poetry install --no-interaction --no-root --only main,dev,test
       - name: Activate virtualenv
         run: |
           echo "VIRTUAL_ENV=$PWD/.venv" >> $GITHUB_ENV
@@ -74,12 +74,11 @@ jobs:
           name: coverage_report_${{ matrix.python-version }}
           path: html_report
 
-  pylint:
+  ruff-format:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - # setup-python's poetry caching requires poetry to be installed, so we install it before python.
-        name: Install poetry
+      - name: Install poetry
         run: pip install "poetry>=1.1.14,<2.0.0"
       - uses: actions/setup-python@v5
         with:
@@ -87,15 +86,37 @@ jobs:
           cache: poetry
 
       - name: Install dependencies
-        run: poetry install -n
+        run: poetry install --no-interaction --no-root --only linter
       - name: Activate virtualenv
         run: |
           echo "VIRTUAL_ENV=$PWD/.venv" >> $GITHUB_ENV
           echo "$PWD/.venv/bin" >> $GITHUB_PATH
       - run: python --version
 
-      - name: Run pylint
-        run: pylint ${{ inputs.packages }}
+      - name: Run ruff format --check
+        run: ruff format --check
+
+  ruff-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install poetry
+        run: pip install "poetry>=1.1.14,<2.0.0"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ fromJSON(inputs.pytest-python-versions)[0] }}
+          cache: poetry
+
+      - name: Install dependencies
+        run: poetry install --no-interaction --no-root --only linter
+      - name: Activate virtualenv
+        run: |
+          echo "VIRTUAL_ENV=$PWD/.venv" >> $GITHUB_ENV
+          echo "$PWD/.venv/bin" >> $GITHUB_PATH
+      - run: python --version
+
+      - name: Run ruff check
+        run: ruff check --output-format=github
 
   mypy:
     runs-on: ubuntu-latest
@@ -109,7 +130,7 @@ jobs:
           cache: poetry
 
       - name: Install dependencies
-        run: poetry install -n
+        run: poetry install --no-interaction --no-root --only main,dev,test,type-checker
       - name: Activate virtualenv
         run: |
           echo "VIRTUAL_ENV=$PWD/.venv" >> $GITHUB_ENV
@@ -118,28 +139,6 @@ jobs:
 
       - name: Run mypy
         run: mypy ${{ inputs.packages }}
-
-  flake8:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install poetry
-        run: pip install "poetry>=1.1.14,<2.0.0"
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ fromJSON(inputs.pytest-python-versions)[0] }}
-          cache: poetry
-
-      - name: Install dependencies
-        run: poetry install -n
-      - name: Activate virtualenv
-        run: |
-          echo "VIRTUAL_ENV=$PWD/.venv" >> $GITHUB_ENV
-          echo "$PWD/.venv/bin" >> $GITHUB_PATH
-      - run: python --version
-
-      - name: Run flake8
-        run: flake8 ${{ inputs.packages }}
 
   build:
     runs-on: ubuntu-latest
@@ -153,11 +152,11 @@ jobs:
           cache: poetry
 
       - name: Install dependencies
-        run: poetry install -n
+        run: poetry install --no-interaction
       - run: python --version
 
       - name: Build
-        run: poetry build -n
+        run: poetry build --no-interaction
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
